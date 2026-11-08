@@ -44,6 +44,45 @@ html,body{width:100%;height:100%;overflow:hidden;background:#02060f;font-family:
 .hidden{display:none!important}
 #ctrlHint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);color:rgba(150,225,255,.55);font-size:13px;letter-spacing:2px;z-index:9;pointer-events:none;text-shadow:0 1px 4px #000}
 </style>
+<style id="mobile-adapt">
+/* ===== 手机端适配 ===== */
+@media (max-width:820px){
+  #hud{padding:10px 12px!important;gap:6px!important}
+  .barwrap{width:min(320px,58vw)!important}
+  .bar{height:14px!important}
+  .bar .txt{font-size:10px!important}
+  #topinfo{gap:12px!important;font-size:12px!important}
+  #lvlNum{font-size:18px!important}
+  #bossbar{top:60px!important;width:92vw!important}
+  #bossbar .name{font-size:13px!important;letter-spacing:2px!important}
+  #bossbar .bar{height:16px!important}
+  #cards{gap:12px!important;padding:14px 10px!important;align-items:center!important;overflow-y:auto!important}
+  .card{width:min(88vw,320px)!important;min-height:auto!important;padding:14px 14px!important;flex-direction:row!important;flex-wrap:wrap!important;gap:8px!important;align-items:center!important}
+  .card .ico{font-size:32px!important;flex:0 0 auto!important}
+  .card .nm{font-size:16px!important;flex:1 1 auto!important;text-align:left!important}
+  .card .ds{font-size:12px!important;width:100%!important;text-align:left!important;flex-basis:100%!important}
+  .card .rar{position:static!important;font-size:10px!important;padding:1px 6px!important;order:-1!important}
+  #overlay h1{letter-spacing:4px!important}
+  #overlay p{font-size:13px!important;line-height:1.8!important}
+  #startBtn{padding:13px 40px!important;font-size:17px!important;letter-spacing:3px!important}
+  #ctrlHint{font-size:11px!important;bottom:8px!important}
+}
+/* 触摸摇杆 */
+#touchPad{position:fixed;left:0;bottom:0;width:100%;height:100%;z-index:2147483000;pointer-events:none}
+#joyBase{position:absolute;left:90px;bottom:100px;width:110px;height:110px;border-radius:50%;border:2px solid rgba(120,220,255,.35);background:rgba(40,120,180,.12);pointer-events:auto;touch-action:none}
+#joyKnob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(160,235,255,.95),rgba(70,180,240,.85));box-shadow:0 0 18px rgba(80,210,255,.7)}
+
+</style><style id="mobile-cards-tight">
+@media (max-width:820px){
+  #cards{gap:6px!important;padding:8px 6px 170px!important;align-content:center!important}
+  .card{width:min(88vw,260px)!important;min-height:auto!important;padding:6px 10px!important;gap:2px!important;border-radius:11px!important}
+  .card .ico{font-size:19px!important}
+  .card .nm{font-size:12.5px!important}
+  .card .ds{font-size:10px!important;line-height:1.25!important}
+  .card .rar{font-size:9px!important;padding:1px 5px!important;border-radius:6px!important}
+  .card span[style]{font-size:9.5px!important}
+}
+</style>
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -73,7 +112,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
 const TAU=Math.PI*2;
-const keys={};
+const keys={};window.keys=keys;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 const cam={x:0,y:0,shake:0,shakeX:0,shakeY:0};
@@ -663,5 +702,50 @@ document.getElementById('startBtn').onclick=startGame;
 updateHUD();
 requestAnimationFrame(loop);
 </script>
-</body>
+<script id="mobile-joy">
+(function(){
+  function initJoy(){
+    if(document.getElementById('touchPad'))return;
+    var pad=document.createElement('div');pad.id='touchPad';
+    var base=document.createElement('div');base.id='joyBase';
+    var knob=document.createElement('div');knob.id='joyKnob';
+    base.appendChild(knob);pad.appendChild(base);document.body.appendChild(pad);
+    pad.style.cssText='position:fixed;left:0;bottom:0;width:100%;height:100%;z-index:2147483000;pointer-events:none;display:block;';
+    base.style.cssText='position:absolute;left:28px;bottom:130px;width:130px;height:130px;border-radius:50%;border:2px solid rgba(120,220,255,.55);background:rgba(40,120,180,.22);pointer-events:auto;touch-action:none;box-shadow:0 0 22px rgba(80,200,255,.3)';
+    knob.style.cssText='position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(170,240,255,.95),rgba(70,180,240,.9));box-shadow:0 0 20px rgba(80,210,255,.8);pointer-events:none';
+    var active=false,cx0=0,cy0=0,R=42;
+    function getXY(e){var t=e.touches&&e.touches[0]?e.touches[0]:(e.changedTouches&&e.changedTouches[0]?e.changedTouches[0]:e);return{x:t.clientX,y:t.clientY};}
+    function start(e){
+      active=true;var r=base.getBoundingClientRect();cx0=r.left+r.width/2;cy0=r.top+r.height/2;
+      move(e);if(e.preventDefault)e.preventDefault();
+    }
+    function move(e){
+      if(!active)return;
+      var p=getXY(e),dx=p.x-cx0,dy=p.y-cy0,d=Math.hypot(dx,dy);
+      if(d>R){dx=dx/d*R;dy=dy/d*R;}
+      knob.style.transform='translate('+dx+'px,'+dy+'px)';
+      var nx=dx/R,ny=dy/R,K=window.keys;
+      if(K){K['d']=nx>0.28;K['a']=nx<-0.28;K['s']=ny>0.28;K['w']=ny<-0.28;}
+      if(e.preventDefault)e.preventDefault();
+    }
+    function end(e){
+      active=false;knob.style.transform='';
+      var K=window.keys;if(K){K['d']=K['a']=K['w']=K['s']=false;}
+      if(e&&e.preventDefault)e.preventDefault();
+    }
+    base.addEventListener('touchstart',start,{passive:false});
+    base.addEventListener('touchmove',move,{passive:false});
+    base.addEventListener('touchend',end,{passive:false});
+    base.addEventListener('touchcancel',end,{passive:false});
+    base.addEventListener('mousedown',start);
+    window.addEventListener('mousemove',function(e){if(active)move(e);});
+    window.addEventListener('mouseup',function(e){if(active)end(e);});
+  }
+  var touch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+  function tryInit(){if(touch||innerWidth<=900){initJoy();}}
+  tryInit();
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',tryInit);}else{setTimeout(tryInit,200);}
+  window.addEventListener('resize',function(){if((touch||innerWidth<=820))initJoy();});
+})();
+</script></body>
 </html>
