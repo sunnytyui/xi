@@ -83,6 +83,60 @@ html,body{width:100%;height:100%;overflow:hidden;background:#02060f;font-family:
   .card span[style]{font-size:9.5px!important}
 }
 </style>
+<style id="fs-css">
+#fsBtn{position:fixed;right:8px;top:8px;z-index:99999;display:none;padding:6px 13px;font-size:12px;font-weight:800;letter-spacing:1px;color:#04101f;background:linear-gradient(135deg,#7ee0ff,#5b8cff);border:1.5px solid rgba(255,255,255,.85);border-radius:16px;backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.45),0 0 16px rgba(100,220,255,.8),inset 0 1px 0 rgba(255,255,255,.5);cursor:pointer;transition:opacity .5s,transform .15s;user-select:none;-webkit-tap-highlight-color:transparent;text-shadow:0 1px 2px rgba(255,255,255,.4)}
+#fsBtn.on{display:block;opacity:1;animation:fsPulse 1.6s ease-in-out infinite}
+#fsBtn.dim{opacity:.5;animation:none}
+#fsBtn:active{transform:scale(.94)}
+@keyframes fsPulse{0%,100%{box-shadow:0 6px 22px rgba(0,0,0,.5),0 0 24px rgba(100,220,255,.85),inset 0 1px 0 rgba(255,255,255,.5)}50%{box-shadow:0 6px 22px rgba(0,0,0,.5),0 0 38px rgba(130,235,255,1),inset 0 1px 0 rgba(255,255,255,.7)}}
+</style>
+<script id="fs-js">
+function isFS(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
+function enterFS(){
+  var el=document.documentElement;
+  try{
+    if(el.requestFullscreen){var p=el.requestFullscreen();if(p&&p.catch)p.catch(function(){});}
+    else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}
+  }catch(e){}
+  try{
+    if(screen.orientation&&screen.orientation.lock){var q=screen.orientation.lock('portrait');if(q&&q.catch)q.catch(function(){});}
+  }catch(e){}
+}
+function exitFS(){
+  try{
+    if(document.exitFullscreen){var p=document.exitFullscreen();if(p&&p.catch)p.catch(function(){});}
+    else if(document.webkitExitFullscreen){document.webkitExitFullscreen();}
+  }catch(e){}
+  try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();}catch(e){}
+}
+function updateFSBtn(){
+  var b=document.getElementById('fsBtn');if(!b)return;
+  b.textContent=isFS()?'\u9000\u51FA\u5168\u5C4F':'\u5168\u5C4F';
+}
+var _fsTimer=null;
+function showFSBtn(){
+  var b=document.getElementById('fsBtn');if(!b)return;
+  updateFSBtn();
+  b.classList.add('on');b.classList.remove('dim');
+  if(_fsTimer)clearTimeout(_fsTimer);
+  _fsTimer=setTimeout(function(){b.classList.add('dim');},2000);
+}
+function toggleFS(){
+  if(isFS())exitFS();else enterFS();
+  showFSBtn();
+}
+function bindFS(){
+  var b=document.getElementById('fsBtn');if(!b||b.__bound)return;b.__bound=1;
+  b.addEventListener('click',function(e){e.stopPropagation();e.preventDefault();toggleFS();});
+  b.addEventListener('touchstart',function(e){e.stopPropagation();e.preventDefault();toggleFS();},{passive:false});
+  function onChange(){updateFSBtn();showFSBtn();}
+  document.addEventListener('fullscreenchange',onChange);
+  document.addEventListener('webkitfullscreenchange',onChange);
+  /* 触摸/点击屏幕时重新显示按钮 */
+  document.addEventListener('touchstart',function(){if(isFS())showFSBtn();},{passive:true});
+  document.addEventListener('mousedown',function(){if(isFS())showFSBtn();});
+}
+</script>
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -1047,6 +1101,8 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 function startGame(){
+  try{enterFS();bindFS();showFSBtn();}catch(e){}
+  try{var _tp=document.getElementById('touchPad');if(_tp)_tp.style.display='block';}catch(e){}
   SFX.init();SFX.resume();
   resetPlayer();
   enemies.length=0;bullets.length=0;ebullets.length=0;parts.length=0;texts.length=0;orbiters.length=0;crystals.length=0;crystalT=0;
@@ -1064,6 +1120,7 @@ function startGame(){
 }
 function gameOver(){
   hideOpeningLine();
+  try{var _tp=document.getElementById('touchPad');if(_tp)_tp.style.display='none';}catch(e){}
   G.over=true;G.running=false;SFX.lose();
   const o=document.getElementById('overlay');o.classList.remove('hidden');
   o.innerHTML='<h1 style="color:#ff2d55;text-shadow:0 0 30px #ff2d55">\u6DF1\u6E0A\u541E\u6CA1</h1><p class="big">\u7B49\u7EA7 '+G.level+' \u00B7 \u51FB\u6740 '+G.kills+' \u00B7 \u5B58\u6D3B '+Math.floor(G.t)+'s</p><button id="startBtn">\u518D\u6765\u4E00\u6B21</button>';
@@ -1308,6 +1365,7 @@ function drawPurify(){
   cx.restore();
 }function winGame(){
   hidePurifyLine();hideOpeningLine();
+  try{var _tp=document.getElementById('touchPad');if(_tp)_tp.style.display='none';}catch(e){}
   G.win=true;G.running=false;G.over=true;addShake(40);
   setTimeout(()=>{
     const o=document.getElementById('overlay');o.classList.remove('hidden');
@@ -1327,7 +1385,7 @@ requestAnimationFrame(loop);
     var base=document.createElement('div');base.id='joyBase';
     var knob=document.createElement('div');knob.id='joyKnob';
     base.appendChild(knob);pad.appendChild(base);document.body.appendChild(pad);
-    pad.style.cssText='position:fixed;left:0;bottom:0;width:100%;height:100%;z-index:2147483000;pointer-events:none;display:block;';
+    pad.style.cssText='position:fixed;left:0;bottom:0;width:100%;height:100%;z-index:2147483000;pointer-events:none;display:none;';
     base.style.cssText='position:absolute;left:28px;bottom:130px;width:130px;height:130px;border-radius:50%;border:2px solid rgba(120,220,255,.55);background:rgba(40,120,180,.22);pointer-events:auto;touch-action:none;box-shadow:0 0 22px rgba(80,200,255,.3)';
     knob.style.cssText='position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(170,240,255,.95),rgba(70,180,240,.9));box-shadow:0 0 20px rgba(80,210,255,.8);pointer-events:none';
     var active=false,cx0=0,cy0=0,R=42;
@@ -1364,5 +1422,6 @@ requestAnimationFrame(loop);
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',tryInit);}else{setTimeout(tryInit,200);}
   window.addEventListener('resize',function(){if((touch||innerWidth<=820))initJoy();});
 })();
-</script></body>
+</script><div id="fsBtn">全屏</div>
+</body>
 </html>
